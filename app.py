@@ -15,7 +15,7 @@ except Exception:
 st.set_page_config(page_title="公司新人 Onboarding 工具", layout="wide")
 
 # Configure Gemini API key from environment variable
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or "AIzaSyAuQSE6jwqwCSiR_d7AjhQNeXWWz41jIH4"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     if _HAS_GENAI:
         try:
@@ -131,3 +131,4 @@ st.write("- 本工具手機平板皆可順暢使用")
 st.write("- iOS 用戶：部署後從 Safari 加到主畫面，即可離線瀏覽（基本快取）")
 st.write("- 如需更新 PDF，請重新上傳")
 st.write("Made with ❤️ by Python + Streamlit + Google Gemini")
+
