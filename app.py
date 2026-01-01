@@ -5,9 +5,9 @@ import pandas as pd
 import PyPDF2
 import pdfplumber
 
-# Optional: google generative ai (Gemini). Import lazily to avoid startup error when key not set.
+# Optional: google genai (Gemini). Import lazily to avoid startup error when key not set.
 try:
-    import google.generativeai as genai
+    import google.genai as genai
     _HAS_GENAI = True
 except Exception:
     _HAS_GENAI = False
@@ -15,7 +15,7 @@ except Exception:
 st.set_page_config(page_title="公司新人 Onboarding 工具", layout="wide")
 
 # Configure Gemini API key from environment variable
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") 
 if GEMINI_API_KEY:
     if _HAS_GENAI:
         try:
@@ -102,7 +102,7 @@ question = st.text_input("例如：公司請假政策是什麼？年度健檢有
 
 if question:
     if not GEMINI_API_KEY or not _HAS_GENAI:
-        st.error("無法使用 Q&A：請安裝 `google-generative-ai` 並設定 `GEMINI_API_KEY` 環境變數。")
+        st.error("無法使用 Q&A：請安裝 `google-genai` 並設定 `GEMINI_API_KEY` 環境變數。")
     else:
         with st.spinner("Gemini 正在思考..."):
             try:
@@ -131,4 +131,3 @@ st.write("- 本工具手機平板皆可順暢使用")
 st.write("- iOS 用戶：部署後從 Safari 加到主畫面，即可離線瀏覽（基本快取）")
 st.write("- 如需更新 PDF，請重新上傳")
 st.write("Made with ❤️ by Python + Streamlit + Google Gemini")
-
