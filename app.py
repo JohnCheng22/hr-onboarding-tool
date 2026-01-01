@@ -19,7 +19,19 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     if _HAS_GENAI:
         try:
-            genai.configure(api_key=GEMINI_API_KEY)
+            # Newer `google.genai` exposes a Client class. Prefer creating a client
+            # with the API key and attach it to the module for compatibility.
+            if hasattr(genai, 'Client'):
+                genai_client = genai.Client(api_key=GEMINI_API_KEY)
+                try:
+                    genai.client = genai_client
+                except Exception:
+                    pass
+            # Fallback to configure if present (older API surface)
+            elif hasattr(genai, 'configure'):
+                genai.configure(api_key=GEMINI_API_KEY)
+            else:
+                raise RuntimeError('no supported genai configuration API found')
         except Exception as e:
             st.warning(f"無法設定 Gemini API：{e}")
 
@@ -106,7 +118,6 @@ if question:
     else:
         with st.spinner("Gemini 正在思考..."):
             try:
-                model = genai.GenerativeModel('gemini-1.5-flash')
                 prompt = f"""
 你是專業的 HR 助手，請用繁體中文、親切簡潔的語氣回答。
 僅根據以下公司政策內容回答，不要添加外部知識。
@@ -117,11 +128,55 @@ if question:
 
 新人問題：{question}
 """
-                response = model.generate_content(prompt)
-                # response may be a complex object; try to access text
-                answer_text = getattr(response, 'text', None) or str(response)
-                st.markdown("**🤖 Gemini 回答：**")
-                st.write(answer_text)
+                # Prefer an existing configured client; otherwise create one with the API key
+                client = getattr(genai, 'client', None) or genai.Client(api_key=GEMINI_API_KEY)
+
+                # Try a few model candidates to avoid hard-failing when a model name isn't available
+                # Prefer newer Gemini 2.x IDs observed in the environment
+                model_candidates = [
+                    'models/gemini-2.5-flash',
+                    'models/gemini-2.5-pro',
+                    'models/gemini-flash-latest',
+                    'models/gemini-pro-latest',
+                    'models/gemini-2.0-flash',
+                    'gemini-1.5-flash',
+                ]
+                response = None
+                last_exc = None
+                for m in model_candidates:
+                    try:
+                        response = client.models.generate_content(model=m, contents=prompt)
+                        break
+                    except Exception as e:
+                        last_exc = e
+                        # try next candidate
+                        continue
+
+                if response is None:
+                    # If all candidates failed, try to list available models to give actionable feedback
+                    model_list_info = None
+                    try:
+                        if hasattr(client, 'models') and hasattr(client.models, 'list'):
+                            models_res = client.models.list()
+                            # Try to extract model identifiers in a few possible shapes
+                            try:
+                                model_items = getattr(models_res, 'models', models_res)
+                                model_ids = [getattr(mi, 'name', str(mi)) for mi in model_items]
+                                model_list_info = ', '.join(model_ids)
+                            except Exception:
+                                model_list_info = str(models_res)
+                    except Exception:
+                        model_list_info = None
+
+                    if model_list_info:
+                        st.error(f"呼叫 Gemini 時發生錯誤：{last_exc}。可用模型包括：{model_list_info}")
+                    else:
+                        st.error(f"呼叫 Gemini 時發生錯誤：{last_exc}")
+                else:
+                    # response exposes a `text` property on this SDK
+                    answer_text = getattr(response, 'text', None) or str(response)
+                    st.markdown("**🤖 Gemini 回答：**")
+                    st.write(answer_text)
             except Exception as e:
                 st.error(f"呼叫 Gemini 時發生錯誤：{e}")
 
