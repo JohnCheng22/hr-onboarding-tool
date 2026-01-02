@@ -3,7 +3,7 @@ import tempfile
 import streamlit as st
 import pandas as pd
 import PyPDF2
-import pdfplumber
+# PDF table auto-detection disabled; removed pdfplumber dependency
 
 # Optional: google genai (Gemini). Import lazily to avoid startup error when key not set.
 try:
@@ -54,39 +54,15 @@ st.caption("💡 手機使用提示：部署後，從 iOS Safari 點「分享 �
 st.title("🏢 公司新人 Onboarding 工具")
 st.markdown("歡迎新同事！這裡提供公司政策資訊、PDF 原文與即時 Q&A。")
 
-uploaded_file = st.file_uploader("上傳公司政策 PDF（或使用預設 policy.pdf）", type="pdf")
-
-# Handle uploaded file or fallback to local policy.pdf
-if uploaded_file:
-    tmp_path = os.path.join(tempfile.gettempdir(), "temp_policy.pdf")
-    with open(tmp_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    pdf_path = tmp_path
-else:
-    pdf_path = os.path.join(os.path.dirname(__file__), "policy.pdf")
+# 使用本地 policy.pdf 作為唯一來源（不提供用戶上傳）
+pdf_path = os.path.join(os.path.dirname(__file__), "policy.pdf")
 
 if not os.path.exists(pdf_path):
-    st.error("❌ 請上傳 PDF 或確保 policy.pdf 存在於應用程式同一資料夾")
+    st.error("❌ 無法找到 policy.pdf，請將公司政策檔案放在應用程式同一資料夾，檔名為 policy.pdf")
     st.stop()
 
 st.header("📊 公司政策資訊（表格提取）")
-try:
-    with pdfplumber.open(pdf_path) as pdf:
-        tables = []
-        for i, page in enumerate(pdf.pages):
-            table = page.extract_table()
-            if table:
-                df = pd.DataFrame(table[1:], columns=table[0])
-                tables.append((i + 1, df))
-
-    if tables:
-        for page_num, df in tables:
-            st.subheader(f"第 {page_num} 頁 表格")
-            st.dataframe(df, use_container_width=True)
-    else:
-        st.info("PDF 中未偵測到表格，可直接閱讀原文或提問。")
-except Exception as e:
-    st.warning(f"解析 PDF 表格時出現問題：{e}")
+st.info("已停用自動表格偵測。如需表格資料，請在本機使用工具擷取或手動轉換。")
 
 st.header("📄 PDF 原文")
 with open(pdf_path, "rb") as f:
